@@ -1,13 +1,13 @@
 'use client';
 
-import { Group, Button, Text, Box, Burger, Drawer, ScrollArea, Divider, rem, Avatar, Menu, UnstyledButton, ActionIcon, useMantineColorScheme, useComputedColorScheme, Container } from '@mantine/core';
+import { Group, Button, Text, Box, Burger, Drawer, ScrollArea, Divider, rem, Avatar, Menu, UnstyledButton, ActionIcon, useMantineColorScheme, useComputedColorScheme, Container, TextInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import Link from 'next/link';
 import classes from './Navbar.module.css';
 import { useAuth } from '@/components/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { IconLogout, IconUser, IconChevronDown, IconSun, IconMoon, IconSchool } from '@tabler/icons-react';
+import { IconLogout, IconUser, IconChevronDown, IconSun, IconMoon, IconSchool, IconSearch } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import cx from 'clsx';
 
@@ -17,6 +17,7 @@ export function Navbar() {
     const router = useRouter();
     const { setColorScheme } = useMantineColorScheme();
     const computedColorScheme = useComputedColorScheme('dark', { getInitialValueInEffect: true });
+    // Search icon navigates to people directory; searching happens there.
 
     const handleLogout = async () => {
         await signOut(auth);
@@ -56,7 +57,17 @@ export function Navbar() {
                             </Link>
                         </Group>
 
-                        <Group visibleFrom="sm">
+                        <Group visibleFrom="sm" gap="md">
+                            <ActionIcon
+                                component={Link}
+                                href="/users"
+                                variant="default"
+                                size="lg"
+                                aria-label="Search people"
+                                title="Search people"
+                            >
+                                <IconSearch size={16} />
+                            </ActionIcon>
                             <ActionIcon
                                 onClick={() => setColorScheme(computedColorScheme === 'light' ? 'dark' : 'light')}
                                 variant="default"
