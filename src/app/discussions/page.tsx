@@ -9,6 +9,7 @@ import { IconMessage, IconPlus, IconThumbUp, IconCode, IconBrain, IconDatabase, 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
+import { showError } from '@/lib/error-handling';
 
 interface Thread {
     _id: string;
@@ -160,7 +161,7 @@ export default function DiscussionsPage() {
             queryClient.invalidateQueries({ queryKey: ['threads'] });
         },
         onError: (e: any) => {
-            notifications.show({ color: 'red', title: 'Create Failed', message: e.message || 'Unable to create discussion.' });
+            showError(e, 'Create Failed');
         }
     });
 
@@ -195,7 +196,7 @@ export default function DiscussionsPage() {
         },
         onError: (e, _id, ctx) => {
             if (ctx?.prev) queryClient.setQueryData(['threads', { page, pageSize, sort, category: categoryFilter }], ctx.prev);
-            notifications.show({ color: 'red', title: 'Upvote Failed', message: (e as any).message || 'Unable to toggle upvote.' });
+            showError(e, 'Upvote Failed');
         },
         onSuccess: (data) => {
             if (data.thread) {
@@ -246,7 +247,7 @@ export default function DiscussionsPage() {
             }
         },
         onError: (e: any) => {
-            notifications.show({ color: 'red', title: 'Comment Failed', message: e.message || 'Unable to add comment.' });
+            showError(e, 'Comment Failed');
         }
     });
 
@@ -276,7 +277,7 @@ export default function DiscussionsPage() {
             queryClient.invalidateQueries({ queryKey: ['threads'] });
         },
         onError: (e: any) => {
-            notifications.show({ color: 'red', title: 'Update Failed', message: e.message || 'Unable to update discussion.' });
+            showError(e, 'Update Failed');
         }
     });
 

@@ -6,6 +6,7 @@ import { Container, Title, Button, Group, Card, Badge, Text, SimpleGrid, TextInp
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '@/components/AuthProvider';
 import { IconBrandGithub, IconExternalLink, IconPlus, IconStar } from '@tabler/icons-react';
+import { showError } from '@/lib/error-handling';
 
 interface ProjectTeamMember {
     _id: string;
@@ -88,11 +89,12 @@ export default function ProjectsPage() {
                 fetchProjects();
                 setNewProject({ title: '', description: '', techStack: '', demoLink: '', repoLink: '', imageUrl: '' });
             } else {
-                alert('Failed to submit project');
+                const data = await res.json();
+                showError({ message: data.error || data.detail || 'Failed to submit project' }, 'Submission Failed');
             }
         } catch (error) {
             console.error(error);
-            alert('An error occurred');
+            showError(error, 'Submission Failed');
         } finally {
             setSubmitting(false);
         }

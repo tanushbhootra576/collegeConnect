@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Message from '@/models/Message';
 import User from '@/models/User';
+import { validateContent } from '@/lib/moderation';
 
 export async function GET(req: NextRequest) {
     try {
@@ -50,6 +51,13 @@ export async function POST(req: NextRequest) {
         const sender = await User.findById(senderId);
         if (!sender) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Moderation check
+        try {
+            await validateContent(content, 'message');
+        } catch (modError: any) {
+            return NextResponse.json({ error: modError.message }, { status: 400 });
         }
 
         // Verify branch/year match

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import DiscussionThread from '@/models/DiscussionThread';
 import User from '@/models/User';
 import mongoose from 'mongoose';
+import { validateContent } from '@/lib/moderation';
 
 export async function GET(req: NextRequest) {
     const start = Date.now();
@@ -103,7 +104,15 @@ export async function POST(req: NextRequest) {
     }
     try {
         const body = await req.json();
-        const { authorId, category } = body;
+        const { authorId, category, title, content } = body;
+
+        // Moderation check
+        try {
+            await validateContent(title, 'title');
+            await validateContent(content, 'content');
+        } catch (modError: any) {
+            return NextResponse.json({ error: modError.message }, { status: 400 });
+        }
 
         // Check permissions for ALL categories
         const user = await User.findById(authorId);

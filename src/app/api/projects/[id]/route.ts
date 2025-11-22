@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
+import { validateContent } from '@/lib/moderation';
 
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
   const resolved = 'then' in context.params ? await context.params : context.params;
@@ -24,6 +25,15 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     if (!canEdit) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    // Moderation check
+    try {
+        if (updates.title) await validateContent(updates.title, 'title');
+        if (updates.description) await validateContent(updates.description, 'description');
+    } catch (modError: any) {
+        return NextResponse.json({ error: modError.message }, { status: 400 });
+    }
+
     // Whitelist updatable fields
     const allowed: Array<keyof typeof project> = ['title','description','techStack','demoLink','repoLink','images','isFeatured'];
     for (const k of allowed) {

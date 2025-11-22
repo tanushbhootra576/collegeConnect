@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Container, Title, Paper, Tabs, ScrollArea, TextInput, ActionIcon, Group, Text, Avatar, Center, Tooltip } from '@mantine/core';
 import { useAuth } from '@/components/AuthProvider';
 import { IconSend, IconTrash, IconRefresh } from '@tabler/icons-react';
+import { showError } from '@/lib/error-handling';
 
 interface Message {
     _id: string;
@@ -116,11 +117,11 @@ export default function ChatPage() {
                 fetchMessages();
             } else {
                 const data = await res.json();
-                alert(data.error || 'Failed to send message');
+                showError({ message: data.error || 'Failed to send message' }, 'Message Failed');
             }
         } catch (error) {
             console.error('Error sending message:', error);
-            alert('Failed to send message');
+            showError(error, 'Message Failed');
         }
     };
 

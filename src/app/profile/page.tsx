@@ -6,6 +6,7 @@ import { Container, Title, TextInput, Textarea, Button, Group, Paper, Avatar, Si
 import { useAuth } from '@/components/AuthProvider';
 import { IconDeviceFloppy, IconCheck, IconX, IconTrash, IconRefresh } from '@tabler/icons-react';
 import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
+import { showError } from '@/lib/error-handling';
 
 export default function ProfilePage() {
     const { user, profile, refreshProfile } = useAuth();
@@ -78,11 +79,11 @@ export default function ProfilePage() {
                 setNotification({ type: 'success', message: 'Profile updated successfully!' });
             } else {
                 const data = await res.json();
-                setNotification({ type: 'error', message: data.error || 'Failed to update profile.' });
+                showError({ message: data.error || 'Failed to update profile.' }, 'Update Failed');
             }
         } catch (error) {
             console.error(error);
-            setNotification({ type: 'error', message: 'An error occurred while updating profile.' });
+            showError(error, 'Update Failed');
         } finally {
             setLoading(false);
         }
@@ -216,10 +217,10 @@ export default function ProfilePage() {
                 setNotification({ type: 'success', message: 'Project updated.' });
                 setEditProjectModal({ open: false, project: null });
             } else {
-                setNotification({ type: 'error', message: data.error || 'Failed to update project.' });
+                showError({ message: data.error || 'Failed to update project.' }, 'Update Failed');
             }
         } catch (e) {
-            setNotification({ type: 'error', message: 'Error updating project.' });
+            showError(e, 'Update Failed');
         } finally {
             setLoading(false);
         }
@@ -266,7 +267,7 @@ export default function ProfilePage() {
         setLoading(true);
         const uid = user.uid;
 
-        const executeDelete = async () => {
+        const performDelete = async () => {
             // 1. Delete from Firebase FIRST
             await deleteUser(user);
 
@@ -284,23 +285,24 @@ export default function ProfilePage() {
         };
 
         try {
-            await executeDelete();
+            await performDelete();
         } catch (error: any) {
             console.error('Error deleting account:', error);
             
             if (error.code === 'auth/requires-recent-login') {
+                setNotification({ type: 'error', message: 'Security check: Please sign in again to confirm deletion.' });
                 try {
                     // Attempt re-authentication
                     const provider = new GoogleAuthProvider();
                     await reauthenticateWithPopup(user, provider);
                     // Retry delete after successful re-auth
-                    await executeDelete();
+                    await performDelete();
                     return;
                 } catch (reauthError) {
                     console.error('Re-authentication failed:', reauthError);
                     setNotification({ 
                         type: 'error', 
-                        message: 'Security check failed. Please log out and log back in manually to delete your account.' 
+                        message: 'Security check failed. Account was not deleted.' 
                     });
                 }
             } else {

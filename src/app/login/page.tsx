@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { Button, Paper, Title, Container, Text, Notification, Modal, List, ThemeIcon, Group, Checkbox } from '@mantine/core';
+import { Button, Paper, Title, Container, Text, Notification, Modal, List, ThemeIcon, Group, Checkbox, Loader, Center } from '@mantine/core';
 import { Navbar } from '@/components/Navbar';
 import { IconBrandGoogle, IconX, IconCheck, IconInfoCircle } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function LoginPage() {
     const [error, setError] = useState('');
@@ -16,6 +17,19 @@ export default function LoginPage() {
     const [pendingUid, setPendingUid] = useState<string | null>(null);
     const [agreed, setAgreed] = useState(false);
     const router = useRouter();
+    const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+
+    // Check if user is already logged in but needs to accept guidelines
+    useEffect(() => {
+        if (!authLoading && user && profile) {
+            if (!profile.acceptedGuidelines) {
+                setPendingUid(user.uid);
+                openGuidelines();
+            } else {
+                router.replace('/');
+            }
+        }
+    }, [user, profile, authLoading, router, openGuidelines]);
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
@@ -45,6 +59,9 @@ export default function LoginPage() {
             
             const data = await res.json();
             
+            // Refresh profile to ensure global state is up to date
+            await refreshProfile();
+
             if (data.user && !data.user.acceptedGuidelines) {
                 setPendingUid(result.user.uid);
                 openGuidelines();
@@ -68,6 +85,7 @@ export default function LoginPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ acceptedGuidelines: true }),
             });
+            await refreshProfile(); // Update global state
             closeGuidelines();
             router.push('/');
         } catch (err) {
@@ -76,6 +94,19 @@ export default function LoginPage() {
             setLoading(false);
         }
     };
+
+    if (authLoading) {
+        return (
+            <>
+                <Navbar />
+                <Container size="xs" py="xl" mt="xl">
+                    <Center h={200}>
+                        <Loader size="lg" />
+                    </Center>
+                </Container>
+            </>
+        );
+    }
 
     return (
         <>

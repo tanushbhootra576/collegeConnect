@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SkillListing from '@/models/SkillListing';
 import User from '@/models/User';
+import { validateContent } from '@/lib/moderation';
 
 export async function GET(req: NextRequest) {
     try {
@@ -42,6 +43,20 @@ export async function POST(req: NextRequest) {
     try {
         await dbConnect();
         const body = await req.json();
+        
+        // Moderation check
+        try {
+            await validateContent(body.title, 'title');
+            await validateContent(body.description, 'description');
+            if (body.tags && Array.isArray(body.tags)) {
+                for (const tag of body.tags) {
+                    await validateContent(tag, 'tag');
+                }
+            }
+        } catch (modError: any) {
+            return NextResponse.json({ error: modError.message }, { status: 400 });
+        }
+
         // In a real app, we would verify the user from the session/token here.
         // For this prototype, we'll assume the client sends the correct userId or we'd use a middleware.
         // To keep it simple and fast, we will trust the client-sent userId for now, 

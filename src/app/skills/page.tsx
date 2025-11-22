@@ -6,6 +6,7 @@ import { Container, Title, Button, Group, Card, Badge, Text, SimpleGrid, TextInp
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '@/components/AuthProvider';
 import { IconSearch, IconPlus, IconBrandGmail, IconBrandWindows, IconBrandYahoo, IconMail, IconCheck, IconTrash } from '@tabler/icons-react';
+import { showError } from '@/lib/error-handling';
 
 interface Skill {
     _id: string;
@@ -89,11 +90,12 @@ export default function SkillsPage() {
                 fetchSkills();
                 setNewSkill({ title: '', description: '', type: 'OFFER', category: 'ACADEMIC', tags: '' });
             } else {
-                alert('Failed to create skill listing');
+                const data = await res.json();
+                showError({ message: data.error || 'Failed to create skill listing' }, 'Creation Failed');
             }
         } catch (error) {
             console.error(error);
-            alert('An error occurred');
+            showError(error, 'Creation Failed');
         }
     };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
+import { validateContent } from '@/lib/moderation';
 
 export async function GET(req: NextRequest) {
     try {
@@ -26,6 +27,15 @@ export async function POST(req: NextRequest) {
     try {
         await dbConnect();
         const body = await req.json();
+
+        // Moderation check
+        try {
+            await validateContent(body.title, 'title');
+            await validateContent(body.description, 'description');
+        } catch (modError: any) {
+            return NextResponse.json({ error: modError.message }, { status: 400 });
+        }
+
         const project = await Project.create(body);
         return NextResponse.json({ project }, { status: 201 });
     } catch (error) {

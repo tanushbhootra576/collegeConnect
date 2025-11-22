@@ -75,12 +75,13 @@ export async function POST(req: NextRequest) {
         let extractedBranch: string | undefined = undefined;
 
         // 1. Try to parse Registration Number from Name (e.g., "Tanush Bhootra 24BRS1282")
-        // Pattern: 2 digits (Year), 3 letters (Branch), 4 digits (Serial)
-        const regNoMatch = name.match(/\b(\d{2})([A-Z]{3})(\d{4})\b/);
+        // Pattern: 2 digits (Year), optional space, 3 letters (Branch), optional space, 4 digits (Serial)
+        // Case insensitive for branch code
+        const regNoMatch = name.match(/\b(\d{2})\s*([a-zA-Z]{3})\s*(\d{4})\b/);
 
         if (regNoMatch) {
             const shortYear = parseInt(regNoMatch[1], 10); // e.g., 24
-            const branchCode = regNoMatch[2]; // e.g., BRS
+            const branchCode = regNoMatch[2].toUpperCase(); // e.g., BRS
             const joiningYear = 2000 + shortYear; // 2024
 
             const now = new Date();
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
                 role: calculatedRole,
                 year: yearOfStudy,
                 branch: extractedBranch, // Set branch if found
+                profileLocked: !!extractedBranch, // Lock profile if branch is auto-detected
                 skills: [],
                 interests: [],
             });
@@ -141,8 +143,14 @@ export async function POST(req: NextRequest) {
 
             // Update Branch if found in name and not set or different
             // We prioritize the RegNo branch if available
-            if (extractedBranch && user.branch !== extractedBranch) {
-                updates.branch = extractedBranch;
+            if (extractedBranch) {
+                if (user.branch !== extractedBranch) {
+                    updates.branch = extractedBranch;
+                }
+                // If branch is auto-detected, ensure profile is locked
+                if (!user.profileLocked) {
+                    updates.profileLocked = true;
+                }
             }
             
             if (Object.keys(updates).length > 0) {

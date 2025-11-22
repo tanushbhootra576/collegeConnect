@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import DiscussionThread from '@/models/DiscussionThread';
 import User from '@/models/User';
 import mongoose from 'mongoose';
+import { validateContent } from '@/lib/moderation';
 
 function normalize(thread: any) {
   return {
@@ -67,6 +68,19 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
 
     // Check if this is an edit operation (presence of content fields)
     if (title || content || category || tags) {
+        // Moderation check
+        try {
+            if (title) await validateContent(title, 'title');
+            if (content) await validateContent(content, 'content');
+            if (tags && Array.isArray(tags)) {
+                for (const tag of tags) {
+                    await validateContent(tag, 'tag');
+                }
+            }
+        } catch (modError: any) {
+            return NextResponse.json({ error: modError.message }, { status: 400 });
+        }
+
         const user = await User.findById(userId);
         const isAuthor = String(thread.authorId) === userId;
         const isAdmin = user?.role === 'admin';
@@ -123,6 +137,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     if (!userId || !content) {
       return NextResponse.json({ error: 'userId and content required' }, { status: 400 });
     }
+
+    // Moderation check
+    try {
+        await validateContent(content, 'comment');
+    } catch (modError: any) {
+        return NextResponse.json({ error: modError.message }, { status: 400 });
+    }
+
     const resolved = 'then' in context.params ? await context.params : context.params;
     console.log('[POST /api/discussions/:id] incoming id', resolved.id);
     const thread = await DiscussionThread.findById(resolved.id);

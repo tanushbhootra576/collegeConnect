@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { IUser } from '@/models/User';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -25,6 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<FirebaseUser | null>(null);
     const [profile, setProfile] = useState<IUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
+    const pathname = usePathname();
 
     const fetchProfile = async (uid: string) => {
         try {
@@ -33,9 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const data = await res.json();
                 setProfile(data.user);
             } else {
-                // If 404 or other error, set profile to null but don't log error for 404 if API returns 200 with null
-                // The API now returns 200 with { user: null } for not found, so res.ok covers it.
-                // If it actually returns 404 (e.g. network issue or old API), handle it:
                 if (res.status === 404) {
                     setProfile(null);
                 } else {
@@ -62,6 +62,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe();
     }, []);
+
+    // Protect routes & Enforce guidelines
+    useEffect(() => {
+        if (loading) return;
+
+        const publicRoutes = ['/', '/login', '/signup'];
+        const isPublic = publicRoutes.includes(pathname);
+
+        if (!user) {
+            // Not logged in: Redirect to login if trying to access protected route
+            if (!isPublic) {
+                router.replace('/login');
+            }
+        } else {
+            // Logged in
+            if (!loading) {
+                // If user is logged in but profile is missing (and not loading), it's an error state or sync issue.
+                // Redirect to login to attempt re-sync, unless already there.
+                if (!profile) {
+                    if (pathname !== '/login') router.replace('/login');
+                } 
+                // Enforce guidelines: Must be accepted to access ANY page (except login)
+                else if (!profile.acceptedGuidelines && pathname !== '/login') {
+                    router.replace('/login');
+                }
+            }
+        }
+    }, [loading, user, profile, pathname, router]);
 
     const refreshProfile = async () => {
         if (user) {

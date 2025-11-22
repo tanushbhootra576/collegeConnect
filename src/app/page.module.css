@@ -61,7 +61,7 @@
 
 .sectionAlt {
   padding: 80px 0;
-  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  background: rgba(0, 0, 0, 0.044);
 }
 
 .featureCard {
@@ -97,7 +97,8 @@
 .footer {
   padding-top: 48px;
   padding-bottom: 48px;
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  background-color: black, white;
+
   border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
 }
 

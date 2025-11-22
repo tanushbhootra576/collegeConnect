@@ -8,6 +8,7 @@ import Event from '@/models/Event';
 import Message from '@/models/Message';
 import Quiz from '@/models/Quiz';
 import Resource from '@/models/Resource';
+import { validateContent } from '@/lib/moderation';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
     try {
@@ -31,6 +32,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ uid:
         await dbConnect();
         const body = await req.json();
         const { uid } = await params;
+
+        // Moderation check for bio and name
+        try {
+            if (body.bio) await validateContent(body.bio, 'bio');
+            if (body.name) await validateContent(body.name, 'name');
+        } catch (modError: any) {
+            return NextResponse.json({ error: modError.message }, { status: 400 });
+        }
 
         let user = await User.findOne({ firebaseUid: uid });
 
