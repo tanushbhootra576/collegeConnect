@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import { Container, Title, TextInput, Select, SimpleGrid, Card, Text, Badge, Group, Button, LoadingOverlay, Pagination, Modal } from '@mantine/core';
-import { IconSearch, IconMail, IconBrandGmail, IconBrandWindows, IconBrandYahoo } from '@tabler/icons-react';
+import { IconSearch, IconMail, IconBrandGmail, IconBrandWindows, IconBrandYahoo, IconMessage } from '@tabler/icons-react';
 import Link from 'next/link';
 import { getAuthHeaders } from '@/lib/api';
 
@@ -152,6 +152,17 @@ export default function UsersDirectoryPage() {
         <Modal opened={contactOpened} onClose={() => setContactOpened(false)} title={contactUser ? `Contact ${contactUser.name}` : 'Contact'} centered>
           {contactUser && (
             <SimpleGrid cols={1} spacing="sm">
+              <Button
+                leftSection={<IconMessage size={18} />}
+                color="grape"
+                variant="filled"
+                onClick={() => {
+                  setContactOpened(false);
+                  router.push(`/chat?dm=${contactUser.firebaseUid}`);
+                }}
+              >
+                Direct Message
+              </Button>
               <Button
                 component="a"
                 href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contactUser.email}&su=Connecting via the platform`}

@@ -6,7 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Container, Title, Paper, ScrollArea, TextInput, ActionIcon, Group, Text, Avatar, Center, Tooltip, Badge, Menu, Button, Box, Stack, Modal, UnstyledButton, LoadingOverlay, Skeleton } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useAuth } from '@/components/AuthProvider';
-import { IconSend, IconTrash, IconRefresh, IconMoodSmile, IconArrowBackUp, IconX, IconSticker, IconThumbUp, IconHeart, IconMoodHappy, IconMoodSurprised, IconMoodSad, IconFlame, IconSearch, IconArrowDown, IconHash, IconBuilding, IconCalendar, IconMessage, IconUserPlus, IconBan, IconDotsVertical, IconArrowLeft, IconEye, IconPinned, IconPinnedOff, IconStarFilled } from '@tabler/icons-react';
+import { IconSend, IconTrash, IconRefresh, IconMoodSmile, IconArrowBackUp, IconX, IconSticker, IconThumbUp, IconHeart, IconMoodHappy, IconMoodSurprised, IconMoodSad, IconFlame, IconSearch, IconArrowDown, IconHash, IconBuilding, IconCalendar, IconMessage, IconUserPlus, IconBan, IconDotsVertical, IconArrowLeft, IconEye, IconPinned, IconPinnedOff, IconStarFilled, IconBell, IconBellRinging } from '@tabler/icons-react';
 import { showError, showSuccess, showInfo } from '@/lib/error-handling';
 import { getAuthHeaders } from '@/lib/api';
 
@@ -107,7 +107,13 @@ function ChatPageContent() {
     const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
     
     const isMobile = useMediaQuery('(max-width: 768px)');
+    const isTablet = useMediaQuery('(max-width: 1024px)');
+    const sidebarWidth = useMemo(() => (isMobile ? '100%' : isTablet ? 260 : 320), [isMobile, isTablet]);
+    const sidebarMaxWidth = useMemo(() => (isMobile ? '100%' : isTablet ? 300 : 360), [isMobile, isTablet]);
     const [showSidebar, setShowSidebar] = useState(true);
+    const [supportsNotifications, setSupportsNotifications] = useState(true);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+    const [windowInFocus, setWindowInFocus] = useState(true);
 
     const isVITStudent = user?.email?.endsWith('@vitstudent.ac.in');
 
@@ -133,6 +139,67 @@ function ChatPageContent() {
     useEffect(() => {
         autoScrollRef.current = autoScroll;
     }, [autoScroll]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const hasSupport = 'Notification' in window;
+        setSupportsNotifications(hasSupport);
+        if (hasSupport) {
+            setNotificationPermission(Notification.permission);
+        }
+
+        const handleFocus = () => setWindowInFocus(true);
+        const handleBlur = () => setWindowInFocus(false);
+        const handleVisibility = () => {
+            if (typeof document !== 'undefined') {
+                setWindowInFocus(!document.hidden);
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('blur', handleBlur);
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('blur', handleBlur);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
+    }, []);
+
+    const requestBrowserNotifications = useCallback(async () => {
+        if (!supportsNotifications || typeof Notification === 'undefined') {
+            showError({ message: 'Browser does not support notifications.' }, 'Notifications');
+            return;
+        }
+        try {
+            const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
+            if (permission === 'granted') {
+                showSuccess('Browser notifications enabled for DMs');
+            } else {
+                showError({ message: 'Notification permission denied.' }, 'Notifications');
+            }
+        } catch (error) {
+            showError(error, 'Notifications');
+        }
+    }, [supportsNotifications]);
+
+    const sendBrowserNotification = useCallback((senderName: string, preview?: string) => {
+        if (!supportsNotifications || typeof Notification === 'undefined') return;
+        if (Notification.permission !== 'granted') return;
+
+        const body = preview?.trim()?.slice(0, 120) || 'New message in your DMs';
+        try {
+            new Notification(`${senderName} sent a message`, {
+                body,
+                icon: '/favicon.ico',
+                tag: `dm-${senderName}`,
+            });
+        } catch (error) {
+            console.warn('Failed to show browser notification', error);
+        }
+    }, [supportsNotifications]);
 
     const handleSearchUsers = async (query: string) => {
         setUserSearchQuery(query);
@@ -310,7 +377,7 @@ function ChatPageContent() {
                 setIsMessagesLoading(false);
             }
         }
-    }, [activeTab, profile?.branch, profile?.year, dmRecipientId, autoScroll]);
+    }, [activeTab, profile?.branch, profile?.year, dmRecipientId, profile?._id]);
 
     const scrollToBottom = () => {
         if (viewport.current) {
@@ -365,18 +432,26 @@ function ChatPageContent() {
         }
 
         const nextSnapshot: Record<string, number> = {};
+        const isDocumentHidden = typeof document !== 'undefined' ? document.hidden : false;
         recentDms.forEach((dm) => {
             const current = dm.unreadCount || 0;
             const previous = dmUnreadSnapshot.current[dm._id] || 0;
-            if (current > previous && (activeTab !== 'dm' || dmRecipientId !== dm._id)) {
-                const delta = current - previous;
-                showInfo(`${dm.name} sent ${delta} new message${delta > 1 ? 's' : ''}`);
+            if (current > previous) {
+                const conversationActive = activeTab === 'dm' && dmRecipientId === dm._id;
+                if (!conversationActive) {
+                    const delta = current - previous;
+                    showInfo(`${dm.name} sent ${delta} new message${delta > 1 ? 's' : ''}`);
+                }
+
+                if (!conversationActive || !windowInFocus || isDocumentHidden) {
+                    sendBrowserNotification(dm.name, dm.lastMessagePreview);
+                }
             }
             nextSnapshot[dm._id] = current;
         });
 
         dmUnreadSnapshot.current = nextSnapshot;
-    }, [recentDms, activeTab, dmRecipientId]);
+    }, [recentDms, activeTab, dmRecipientId, windowInFocus, sendBrowserNotification]);
 
     const handleSendMessage = async (stickerUrl?: string) => {
         if ((!newMessage.trim() && !stickerUrl) || !user || !profile) return;
@@ -497,8 +572,8 @@ function ChatPageContent() {
                             style={{
                                 borderRight: '1px solid var(--mantine-color-default-border)',
                                 minHeight: 0,
-                                width: isMobile ? '100%' : 320,
-                                maxWidth: isMobile ? '100%' : 360,
+                                width: sidebarWidth,
+                                maxWidth: sidebarMaxWidth,
                                 flexShrink: 0,
                                 display: isMobile && !showSidebar ? 'none' : 'flex',
                                 flexDirection: 'column'
@@ -565,11 +640,35 @@ function ChatPageContent() {
                                             </Badge>
                                         )}
                                     </Group>
-                                    <Tooltip label="New Chat">
-                                        <ActionIcon variant="subtle" color="gray" size="xs" onClick={() => setSearchModalOpen(true)}>
-                                            <IconUserPlus size={14} />
-                                        </ActionIcon>
-                                    </Tooltip>
+                                    <Group gap={4}>
+                                        {supportsNotifications && (
+                                            <Tooltip label={notificationPermission === 'granted' ? 'Browser notifications enabled' : 'Enable browser notifications for DMs'}>
+                                                <ActionIcon
+                                                    variant="subtle"
+                                                    color={notificationPermission === 'granted' ? 'yellow' : 'gray'}
+                                                    size="xs"
+                                                    onClick={() => {
+                                                        if (notificationPermission === 'granted') {
+                                                            showInfo('Notifications already enabled');
+                                                        } else {
+                                                            requestBrowserNotifications();
+                                                        }
+                                                    }}
+                                                >
+                                                    {notificationPermission === 'granted' ? (
+                                                        <IconBellRinging size={14} />
+                                                    ) : (
+                                                        <IconBell size={14} />
+                                                    )}
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        )}
+                                        <Tooltip label="New Chat">
+                                            <ActionIcon variant="subtle" color="gray" size="xs" onClick={() => setSearchModalOpen(true)}>
+                                                <IconUserPlus size={14} />
+                                            </ActionIcon>
+                                        </Tooltip>
+                                    </Group>
                                 </Group>
 
                                 {isConversationsLoading && recentDms.length === 0 ? (
@@ -692,8 +791,13 @@ function ChatPageContent() {
                             }}
                         >
                             <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                                <Group justify="space-between" wrap="nowrap">
-                                    <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+                                <Group 
+                                    justify="space-between" 
+                                    wrap={isTablet ? 'wrap' : 'nowrap'}
+                                    align={isTablet ? 'flex-start' : 'center'}
+                                    gap={isTablet ? 'sm' : 'md'}
+                                >
+                                    <Group gap="xs" wrap={isTablet ? 'wrap' : 'nowrap'} style={{ flex: 1, minWidth: 0 }}>
                                         {isMobile && (
                                             <ActionIcon variant="subtle" color="gray" onClick={() => setShowSidebar(true)}>
                                                 <IconArrowLeft size={20} />
@@ -732,14 +836,17 @@ function ChatPageContent() {
                                         )}
                                     </Group>
                                     {!isMobile && (
-                                        <TextInput 
-                                            placeholder="Search..." 
-                                            size="xs" 
-                                            leftSection={<IconSearch size={12} />}
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            style={{ width: 200 }}
-                                        />
+                                        <Box style={{ flexBasis: isTablet ? '100%' : 'auto', flexGrow: isTablet ? 1 : 0 }}>
+                                            <TextInput 
+                                                placeholder="Search..." 
+                                                size="xs" 
+                                                leftSection={<IconSearch size={12} />}
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                style={{ width: '100%' }}
+                                                mt={isTablet ? 'sm' : 0}
+                                            />
+                                        </Box>
                                     )}
                                 </Group>
                             </Box>
