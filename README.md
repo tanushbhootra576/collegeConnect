@@ -191,9 +191,8 @@ We welcome contributions to Campus Connect!
 
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-## Authors
 
-- **Tanush Bhootra** - *Initial work* - [tanushbhootra576](https://github.com/tanushbhootra576)
+### ✨ Developed by Tanush Bhootra
 
 ## Acknowledgments
 
