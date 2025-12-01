@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
-import { Container, Title, Paper, ScrollArea, TextInput, ActionIcon, Group, Text, Avatar, Center, Tooltip, Badge, Menu, Button, Box, Stack, Modal, UnstyledButton, LoadingOverlay, Skeleton } from '@mantine/core';
+import { Container, Title, Paper, ScrollArea, TextInput, ActionIcon, Group, Text, Avatar, Center, Tooltip, Badge, Menu, Button, Box, Stack, Modal, UnstyledButton, LoadingOverlay, Skeleton, useComputedColorScheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useAuth } from '@/components/AuthProvider';
 import { IconSend, IconTrash, IconRefresh, IconMoodSmile, IconArrowBackUp, IconX, IconSticker, IconThumbUp, IconHeart, IconMoodHappy, IconMoodSurprised, IconMoodSad, IconFlame, IconSearch, IconArrowDown, IconHash, IconBuilding, IconCalendar, IconMessage, IconUserPlus, IconBan, IconDotsVertical, IconArrowLeft, IconEye, IconPinned, IconPinnedOff, IconStarFilled, IconBell, IconBellRinging } from '@tabler/icons-react';
@@ -99,6 +99,8 @@ function ChatPageContent() {
     const recentDmsRef = useRef<ConversationSummary[]>([]);
     const autoScrollRef = useRef(true);
     const pinnedCount = useMemo(() => recentDms.filter(dm => dm.isPinned).length, [recentDms]);
+    const computedColorScheme = useComputedColorScheme('light');
+    const isDark = computedColorScheme === 'dark';
     
     // New State
     const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -853,28 +855,27 @@ function ChatPageContent() {
 
                             <Box style={{ position: 'relative', flex: 1, minHeight: 0 }}>
                                 <LoadingOverlay visible={isMessagesLoading} zIndex={10} overlayProps={{ radius: 'sm', blur: 2 }} loaderProps={{ color: 'blue' }} />
-                                <ScrollArea 
-                                    viewportRef={viewport} 
-                                    p="md" 
-                                    type="always" 
-                                    offsetScrollbars
-                                    onScrollPositionChange={onScrollPositionChange}
-                                    style={{ flex: 1, minHeight: 0 }}
-                                >
                                 {showScrollButton && (
                                     <ActionIcon 
                                         variant="filled" 
                                         color="blue" 
                                         radius="xl" 
                                         size="lg"
-                                        style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
+                                        style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
                                         onClick={scrollToBottom}
                                     >
                                         <IconArrowDown size={20} />
                                     </ActionIcon>
                                 )}
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: 10 }}>
+                                <ScrollArea 
+                                    viewportRef={viewport} 
+                                    p="md" 
+                                    type="always" 
+                                    offsetScrollbars
+                                    onScrollPositionChange={onScrollPositionChange}
+                                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                                >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: 10, paddingBottom: 100 }}>
                                     {isMessagesLoading && messages.length === 0 ? (
                                         Array.from({ length: 6 }).map((_, idx) => (
                                             <Skeleton key={`msg-skeleton-${idx}`} height={78} radius="lg" />
@@ -899,16 +900,17 @@ function ChatPageContent() {
                                                         <Paper 
                                                             p="xs" 
                                                             mb={4} 
-                                                            bg={isMe ? 'rgba(255, 255, 255, 0.15)' : 'var(--mantine-color-default-hover)'} 
+                                                            bg={isMe ? (isDark ? 'rgba(255, 255, 255, 0.15)' : 'var(--mantine-color-blue-0)') : (isDark ? 'var(--mantine-color-dark-6)' : 'var(--mantine-color-gray-1)')} 
                                                             radius="sm" 
                                                             style={{ 
-                                                                borderLeft: `3px solid ${isMe ? 'rgba(255,255,255,0.8)' : '#228be6'}`, 
+                                                                borderLeft: `3px solid ${isMe ? (isDark ? 'rgba(255,255,255,0.8)' : 'var(--mantine-color-blue-6)') : '#228be6'}`, 
                                                                 fontSize: '0.85rem', 
-                                                                cursor: 'pointer'
+                                                                cursor: 'pointer',
+                                                                color: isDark ? 'white' : 'black'
                                                             }}
                                                         >
-                                                            <Text size="xs" fw={700} c={isMe ? 'white' : 'dimmed'}>{msg.replyTo.senderName}</Text>
-                                                            <Text size="xs" lineClamp={1} c={isMe ? 'rgba(255,255,255,0.9)' : 'dimmed'}>{msg.replyTo.content}</Text>
+                                                            <Text size="xs" fw={700} c={isDark ? 'white' : 'black'}>{msg.replyTo.senderName}</Text>
+                                                            <Text size="xs" lineClamp={1} c={isMe && isDark ? 'rgba(255,255,255,0.9)' : 'dimmed'}>{msg.replyTo.content}</Text>
                                                         </Paper>
                                                     )}
 
@@ -918,14 +920,15 @@ function ChatPageContent() {
                                                         <Paper
                                                             p="sm"
                                                             radius="md"
-                                                            bg={isMe ? 'blue.6' : 'var(--mantine-color-default-hover)'}
+                                                            bg={isMe ? 'blue.6' : (isDark ? 'var(--mantine-color-dark-6)' : 'var(--mantine-color-gray-1)')}
                                                             style={{
                                                                 borderTopRightRadius: isMe ? 0 : undefined,
                                                                 borderTopLeftRadius: !isMe ? 0 : undefined,
-                                                                position: 'relative'
+                                                                position: 'relative',
+                                                                border: isMe ? 'none' : `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)'}`
                                                             }}
                                                         >
-                                                            <Text size="sm" c={isMe ? 'white' : 'inherit'} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</Text>
+                                                            <Text size="sm" c={isMe ? 'white' : (isDark ? 'white' : 'black')} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</Text>
                                                         </Paper>
                                                     )}
 
@@ -1032,12 +1035,13 @@ function ChatPageContent() {
                                             display: 'flex', 
                                             justifyContent: 'space-between', 
                                             alignItems: 'center',
-                                            borderLeft: '4px solid #228be6'
+                                            borderLeft: '4px solid #228be6',
+                                            backgroundColor: isDark ? 'var(--mantine-color-dark-7)' : 'white'
                                         }}
                                     >
                                         <Box>
-                                            <Text size="xs" fw={700} c="auto">Replying to {replyingTo.senderName}</Text>
-                                            <Text size="sm" lineClamp={1} c="auto">{replyingTo.content}</Text>
+                                            <Text size="xs" fw={700} c={isDark ? 'white' : 'black'}>Replying to {replyingTo.senderName}</Text>
+                                            <Text size="sm" lineClamp={1} c="dimmed">{replyingTo.content}</Text>
                                         </Box>
                                         <ActionIcon variant="subtle" color="gray" onClick={() => setReplyingTo(null)}>
                                             <IconX size={16} />
