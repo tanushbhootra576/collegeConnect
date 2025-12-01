@@ -61,18 +61,13 @@ export default function UserProfileView() {
             radius="lg"
             padding="xl"
             withBorder
-            style={{
-              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.38))',
-              borderColor: 'rgba(77, 171, 247, 0.26)',
-              color: 'white'
-            }}
           >
             <Stack gap="lg">
               <Group justify="space-between" align="flex-start" gap="sm" wrap="wrap">
                 <div>
-                  <Title order={1} style={{ color: 'white' }}>{user.name}</Title>
-                  <Text size="sm" c="rgba(255,255,255,0.7)">{user.email}</Text>
-                  <Text mt={4} fw={500} c="rgba(255,255,255,0.8)">
+                  <Title order={1}>{user.name}</Title>
+                  <Text size="sm" c="dimmed">{user.email}</Text>
+                  <Text mt={4} fw={500} c="dimmed">
                     {user.branch ? `${user.branch}${user.year ? ' • Year ' + user.year : ''}` : 'Branch not set'}
                   </Text>
                 </div>
@@ -101,14 +96,14 @@ export default function UserProfileView() {
               </Group>
 
               {user.bio && (
-                <Text size="md" c="rgba(255,255,255,0.85)">
+                <Text size="md">
                   {user.bio}
                 </Text>
               )}
 
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
                 <div>
-                  <Text size="xs" c="rgba(255,255,255,0.6)" fw={700} tt="uppercase" mb={6}>Skills</Text>
+                  <Text size="xs" c="dimmed" fw={700} tt="uppercase" mb={6}>Skills</Text>
                   <Group gap={8} wrap="wrap">
                     {user.skills?.length ? (
                       user.skills.map((skill) => (
@@ -123,12 +118,12 @@ export default function UserProfileView() {
                         </Badge>
                       ))
                     ) : (
-                      <Text size="sm" c="rgba(255,255,255,0.5)">No skills added.</Text>
+                      <Text size="sm" c="dimmed">No skills added.</Text>
                     )}
                   </Group>
                 </div>
                 <div>
-                  <Text size="xs" c="rgba(255,255,255,0.6)" fw={700} tt="uppercase" mb={6}>Interests</Text>
+                  <Text size="xs" c="dimmed" fw={700} tt="uppercase" mb={6}>Interests</Text>
                   <Group gap={8} wrap="wrap">
                     {user.interests?.length ? (
                       user.interests.map((interest) => (
@@ -143,7 +138,7 @@ export default function UserProfileView() {
                         </Badge>
                       ))
                     ) : (
-                      <Text size="sm" c="rgba(255,255,255,0.5)">No interests added.</Text>
+                      <Text size="sm" c="dimmed">No interests added.</Text>
                     )}
                   </Group>
                 </div>
@@ -151,7 +146,7 @@ export default function UserProfileView() {
 
               {user.socialLinks && (
                 <>
-                  <Divider color="rgba(255, 255, 255, 1)" />
+                  <Divider />
                   <Group gap="sm" wrap="wrap">
                     {user.socialLinks.github && (
                       <Button
@@ -159,7 +154,7 @@ export default function UserProfileView() {
                         href={user.socialLinks.github}
                         target="_blank"
                         variant="light"
-                        color="white"
+                        color="dark"
                         leftSection={<IconExternalLink size={16} />}
                       >
                         GitHub
