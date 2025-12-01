@@ -187,9 +187,6 @@ We welcome contributions to Campus Connect!
 5. Submit a pull request with a clear description of the changes.
 6. Include screenshots or recordings for UI changes.
 
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
 
 
 ### ✨ Developed by Tanush Bhootra
