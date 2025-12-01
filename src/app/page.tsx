@@ -88,7 +88,7 @@ export default function Home() {
               </Title>
 
               <Text className={classes.subheadline}>
-                CollegeConnect is your digital campus. Connect with peers, share resources, build projects, and accelerate your career—all in one place.
+                CollegeConnect is your digital campus. Connect with peers, share resources, build projects, and accelerate your career, all in one place.
               </Text>
 
               <Group>
