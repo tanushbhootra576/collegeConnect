@@ -21,6 +21,9 @@ import {
   Modal,
   Accordion,
   ActionIcon,
+  Select,
+  NumberInput,
+  Textarea,
 } from '@mantine/core';
 import { 
   IconSearch, 
@@ -36,7 +39,7 @@ import {
 } from '@tabler/icons-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useDisclosure } from '@mantine/hooks';
-import { showError } from '@/lib/error-handling';
+import { showError, showSuccess } from '@/lib/error-handling';
 import { getAuthHeaders } from '@/lib/api';
 
 interface SubjectResource {
@@ -69,6 +72,89 @@ export default function ResourcesPage() {
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [previewTitle, setPreviewTitle] = useState<string>('');
+
+  const { profile } = useAuth();
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+      courseCode: '',
+      courseName: '',
+      year: '1',
+      branch: '',
+      category: 'NOTES',
+      title: '',
+      linkUrl: '',
+      moduleNumber: 1,
+      exam: 'CAT1',
+      examYear: new Date().getFullYear().toString(),
+      description: ''
+  });
+
+  const handleUpload = async () => {
+      if (!uploadForm.courseCode || !uploadForm.linkUrl || !uploadForm.title) {
+          showError({ message: 'Please fill all required fields' }, 'Validation Error');
+          return;
+      }
+
+      setUploading(true);
+      try {
+          const item: any = {
+              linkUrl: uploadForm.linkUrl,
+              title: uploadForm.title
+          };
+
+          if (uploadForm.category === 'NOTES') {
+              item.moduleNumber = uploadForm.moduleNumber;
+          } else if (uploadForm.category === 'PYQ') {
+              item.exam = uploadForm.exam;
+              item.year = uploadForm.examYear;
+          } else if (uploadForm.category === 'SYLLABUS') {
+              item.description = uploadForm.description;
+          } else {
+              item.description = uploadForm.description;
+          }
+
+          const res = await fetch('/api/resources', {
+              method: 'POST',
+              headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  courseCode: uploadForm.courseCode,
+                  courseName: uploadForm.courseName,
+                  year: parseInt(uploadForm.year),
+                  branch: uploadForm.branch,
+                  category: uploadForm.category,
+                  item,
+                  userId: profile?._id
+              })
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+              showSuccess('Resource uploaded successfully! It is currently pending admin approval.');
+              setUploadModalOpen(false);
+              setUploadForm({
+                  courseCode: '',
+                  courseName: '',
+                  year: '1',
+                  branch: '',
+                  category: 'NOTES',
+                  title: '',
+                  linkUrl: '',
+                  moduleNumber: 1,
+                  exam: 'CAT1',
+                  examYear: new Date().getFullYear().toString(),
+                  description: ''
+              });
+              fetchResources(activeTab);
+          } else {
+              showError({ message: data.error || 'Upload failed' }, 'Error');
+          }
+      } catch (error) {
+          showError(error, 'Upload Failed');
+      } finally {
+          setUploading(false);
+      }
+  };
 
   useEffect(() => {
     fetchResources(activeTab);
@@ -172,7 +258,13 @@ export default function ResourcesPage() {
                     radius="xl"
                     w={250}
                 />
-                {/* Upload button removed for now as schema changed */}
+                <Button 
+                    leftSection={<IconUpload size={16} />} 
+                    radius="xl"
+                    onClick={() => setUploadModalOpen(true)}
+                >
+                    Upload
+                </Button>
               </Group>
             </Group>
 
@@ -335,6 +427,108 @@ export default function ResourcesPage() {
                 </Group>
             </div>
         )}
+      </Modal>
+
+      <Modal
+          opened={uploadModalOpen}
+          onClose={() => setUploadModalOpen(false)}
+          title="Upload Resource"
+          size="lg"
+      >
+          <Stack gap="md">
+              <Group grow>
+                  <TextInput
+                      label="Course Code"
+                      placeholder="e.g. CSE1001"
+                      required
+                      value={uploadForm.courseCode}
+                      onChange={(e) => setUploadForm({ ...uploadForm, courseCode: e.currentTarget.value.toUpperCase() })}
+                  />
+                  <TextInput
+                      label="Course Name"
+                      placeholder="e.g. Problem Solving"
+                      value={uploadForm.courseName}
+                      onChange={(e) => setUploadForm({ ...uploadForm, courseName: e.currentTarget.value })}
+                  />
+              </Group>
+              <Group grow>
+                  <Select
+                      label="Year"
+                      data={['1', '2', '3', '4']}
+                      value={uploadForm.year}
+                      onChange={(val) => setUploadForm({ ...uploadForm, year: val || '1' })}
+                      allowDeselect={false}
+                  />
+                  <TextInput
+                      label="Branch"
+                      placeholder="e.g. CSE (Optional)"
+                      value={uploadForm.branch}
+                      onChange={(e) => setUploadForm({ ...uploadForm, branch: e.currentTarget.value })}
+                  />
+              </Group>
+              
+              <Select
+                  label="Category"
+                  data={['NOTES', 'PYQ', 'SYLLABUS', 'OTHER']}
+                  value={uploadForm.category}
+                  onChange={(val) => setUploadForm({ ...uploadForm, category: val || 'NOTES' })}
+                  allowDeselect={false}
+              />
+
+              <TextInput
+                  label="Title"
+                  placeholder="Resource Title"
+                  required
+                  value={uploadForm.title}
+                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.currentTarget.value })}
+              />
+
+              <TextInput
+                  label="Link URL"
+                  placeholder="Google Drive / YouTube Link"
+                  required
+                  value={uploadForm.linkUrl}
+                  onChange={(e) => setUploadForm({ ...uploadForm, linkUrl: e.currentTarget.value })}
+              />
+
+              {uploadForm.category === 'NOTES' && (
+                  <NumberInput
+                      label="Module Number"
+                      value={uploadForm.moduleNumber}
+                      onChange={(val) => setUploadForm({ ...uploadForm, moduleNumber: Number(val) })}
+                      min={1}
+                  />
+              )}
+
+              {uploadForm.category === 'PYQ' && (
+                  <Group grow>
+                      <Select
+                          label="Exam"
+                          data={['CAT1', 'CAT2', 'FAT']}
+                          value={uploadForm.exam}
+                          onChange={(val) => setUploadForm({ ...uploadForm, exam: val || 'CAT1' })}
+                      />
+                      <TextInput
+                          label="Exam Year"
+                          value={uploadForm.examYear}
+                          onChange={(e) => setUploadForm({ ...uploadForm, examYear: e.currentTarget.value })}
+                      />
+                  </Group>
+              )}
+
+              {(uploadForm.category === 'SYLLABUS' || uploadForm.category === 'OTHER') && (
+                  <Textarea
+                      label="Description"
+                      placeholder="Optional description"
+                      value={uploadForm.description}
+                      onChange={(e) => setUploadForm({ ...uploadForm, description: e.currentTarget.value })}
+                  />
+              )}
+
+              <Button onClick={handleUpload} loading={uploading} fullWidth mt="md">
+                  Upload Resource
+              </Button>
+          </Stack>
       </Modal>
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { Container, Title, TextInput, Textarea, Button, Group, Paper, Avatar, SimpleGrid, TagsInput, NumberInput, LoadingOverlay, Text, Modal, Badge, Card, Divider, ActionIcon, Tooltip, Select } from '@mantine/core';
+import { Container, Title, TextInput, Textarea, Button, Group, Paper, Avatar, SimpleGrid, TagsInput, NumberInput, LoadingOverlay, Text, Modal, Badge, Card, Divider, ActionIcon, Tooltip, Select, Stack } from '@mantine/core';
 import { useAuth } from '@/components/AuthProvider';
 import { IconDeviceFloppy, IconCheck, IconX, IconTrash, IconRefresh } from '@tabler/icons-react';
 import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
@@ -121,6 +121,7 @@ export default function ProfilePage() {
     const [myProjects, setMyProjects] = useState<Project[]>([]);
     const [mySkills, setMySkills] = useState<Skill[]>([]);
     const [myResourcesCount, setMyResourcesCount] = useState<number>(0);
+    const [myResources, setMyResources] = useState<any[]>([]);
     const [fetchingAssets, setFetchingAssets] = useState(false);
 
     // Edit project modal state
@@ -153,10 +154,12 @@ export default function ProfilePage() {
                     const sRes = await fetch(`/api/skills?userId=${pid}`, { headers: getAuthHeaders() });
                     const sData = await sRes.json();
                     setMySkills(Array.isArray(sData.skills) ? sData.skills : []);
-                    // Fetch resources count
-                    const rRes = await fetch(`/api/resources?uploaderId=${pid}`, { headers: getAuthHeaders() });
+                    // Fetch resources
+                    const rRes = await fetch(`/api/resources?uploaderId=${pid}&includePending=true`, { headers: getAuthHeaders() });
                     const rData = await rRes.json();
-                    setMyResourcesCount(Array.isArray(rData.resources) ? rData.resources.length : 0);
+                    const resList = Array.isArray(rData.resources) ? rData.resources : [];
+                    setMyResources(resList);
+                    setMyResourcesCount(resList.length);
                 } catch (e) {
                     console.error('Failed loading user assets', e);
                 } finally {
@@ -538,6 +541,34 @@ export default function ProfilePage() {
                             </Card>
                         ))}
                     </SimpleGrid>
+
+                    <Divider my="sm" label="My Uploads" labelPosition="center" />
+                    {myResources.length === 0 && <Text size="sm" c="dimmed">No resources uploaded.</Text>}
+                    <Stack gap="sm">
+                        {myResources.map(r => {
+                            const isPending = r.isApproved === false || 
+                                (r.syllabus && r.syllabus.isApproved === false) ||
+                                r.modules?.some((m: any) => m.isApproved === false) ||
+                                r.pyqs?.some((p: any) => p.isApproved === false) ||
+                                r.others?.some((o: any) => o.isApproved === false);
+                            
+                            return (
+                                <Card key={r._id} withBorder padding="sm" radius="md">
+                                    <Group justify="space-between">
+                                        <Group>
+                                            <Badge color="pink">{r.courseCode}</Badge>
+                                            <Text fw={500}>{r.courseName}</Text>
+                                        </Group>
+                                        {isPending ? (
+                                            <Badge color="orange" variant="light">Pending Approval</Badge>
+                                        ) : (
+                                            <Badge color="green" variant="light">Approved</Badge>
+                                        )}
+                                    </Group>
+                                </Card>
+                            );
+                        })}
+                    </Stack>
                 </Paper>
             </Container>
 

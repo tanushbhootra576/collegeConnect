@@ -6,29 +6,37 @@ export interface IResource extends Document {
     year: number;
     branch: string;
     uploaderId: mongoose.Types.ObjectId;
+    isApproved: boolean;
     
     syllabus?: {
         linkUrl: string;
         description?: string;
+        isApproved: boolean;
     };
     
     modules: {
+        _id: mongoose.Types.ObjectId;
         moduleNumber: number;
         title: string;
         linkUrl: string;
+        isApproved: boolean;
     }[];
     
     pyqs: {
+        _id: mongoose.Types.ObjectId;
         exam: string;
         year: string;
         linkUrl: string;
+        isApproved: boolean;
     }[];
     
     others: {
+        _id: mongoose.Types.ObjectId;
         title: string;
         description?: string;
         linkUrl: string;
         type?: string; // 'NOTES', 'LINK', etc.
+        isApproved: boolean;
     }[];
 
     createdAt: Date;
@@ -40,29 +48,34 @@ const ResourceSchema: Schema = new Schema({
     year: { type: Number, required: true },
     branch: { type: String },
     uploaderId: { type: Schema.Types.ObjectId, ref: 'User' },
+    isApproved: { type: Boolean, default: false },
     
     syllabus: {
         linkUrl: String,
-        description: String
+        description: String,
+        isApproved: { type: Boolean, default: false }
     },
     
     modules: [{
         moduleNumber: Number,
         title: String,
-        linkUrl: String
+        linkUrl: String,
+        isApproved: { type: Boolean, default: false }
     }],
     
     pyqs: [{
         exam: String,
         year: String,
-        linkUrl: String
+        linkUrl: String,
+        isApproved: { type: Boolean, default: false }
     }],
     
     others: [{
         title: String,
         description: String,
         linkUrl: String,
-        type: String
+        type: String,
+        isApproved: { type: Boolean, default: false }
     }],
 
     createdAt: { type: Date, default: Date.now },
